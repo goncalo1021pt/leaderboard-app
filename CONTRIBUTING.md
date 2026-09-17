@@ -14,6 +14,9 @@ git push -u origin HEAD
 gh pr create --fill
 ```
 
+Two CI jobs run on every pull request: the checks above, and a build of the production
+Docker image, so a broken `Dockerfile` fails in review rather than during a deploy.
+
 A PR merges when CI is green and the branch is up to date with `main`. Squash merge is the default; the PR title becomes the commit message, so write it as one.
 
 ## Commits
@@ -48,8 +51,10 @@ Nothing outside that folder and that line should need to change. If it does, the
 ```bash
 make test         # unit tests, once
 make test-watch   # unit tests, watching
-make test-e2e     # Playwright smoke flows
-make check        # lint + typecheck + test — what CI runs
+make check        # format + lint + typecheck + test — what CI runs
 ```
+
+Playwright is not installed yet; it arrives with the first smoke flow, along with a
+`make test-e2e` target.
 
 Engine code (`lib/games`, `lib/standings`) is where test coverage actually matters: it is pure, fast to test, and every scoring bug lives there. Cover ties, minimum and maximum player counts, and both directions of `higherIsBetter`.

@@ -10,37 +10,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Runs pnpm directly rather than through `make check`. The Makefile wraps every
+  # command in Docker because there is no Node on a developer's host; a CI runner
+  # already has one, and going through Docker here would only cost minutes.
   check:
     name: lint + typecheck + test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # The app is not scaffolded yet (see build order, step 1). Until package.json
-      # exists there is nothing to check, and this job passes trivially.
-      # Delete this step once the scaffold lands.
-      - id: scaffold
-        run: |
-          if [ -f package.json ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No package.json yet — nothing to check."
-          fi
-
       - uses: pnpm/action-setup@v4
-        if: steps.scaffold.outputs.ready == 'true'
 
       - uses: actions/setup-node@v4
-        if: steps.scaffold.outputs.ready == 'true'
         with:
           node-version: 22
           cache: pnpm
 
       - name: Install dependencies
-        if: steps.scaffold.outputs.ready == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Check
-        if: steps.scaffold.outputs.ready == 'true'
-        run: make check
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Types
+        run: pnpm typecheck
+
+      - name: Tests
+        run: pnpm test
+
+  # The homelab runs the `runner` stage. Building it here means a broken
+  # Dockerfile fails in a pull request rather than during a deploy.
+  image:
+    name: production image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

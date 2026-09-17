@@ -1,0 +1,23 @@
+name: leaderboard
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    # Run as the host user so everything written into the bind mount —
+    # node_modules, .next, generated Supabase types — stays owned by you
+    # rather than by root. DOCKER_UID/DOCKER_GID are exported by the Makefile.
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    command: pnpm dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Bind mounts on Linux deliver inotify events natively, so polling stays
+      # off. Set WATCHPACK_POLLING=true in .env if hot reload ever misses edits.
+      WATCHPACK_POLLING: "${WATCHPACK_POLLING:-false}"

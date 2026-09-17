@@ -1,14 +1,21 @@
 # Leaderboard — common tasks.
+# Everything runs in Docker; there is no Node on the host.
 # Run `make` or `make help` to list targets.
 
 .DEFAULT_GOAL := help
 SHELL := /usr/bin/env bash
 
-PNPM     ?= pnpm
-SUPABASE ?= $(PNPM) supabase
+# Passed to the app service so files written into the bind mount — node_modules,
+# .next, generated types — stay owned by you rather than by root.
+export DOCKER_UID := $(shell id -u)
+export DOCKER_GID := $(shell id -g)
 
-.PHONY: help install dev build start lint format typecheck test test-watch test-e2e check \
-        db-start db-stop db-reset db-diff db-types clean
+COMPOSE := docker compose
+# A one-off command in a throwaway container: works whether or not the stack is up.
+RUN     := $(COMPOSE) run --rm app
+
+.PHONY: help up down restart logs shell install dev build image lint lint-fix \
+        format format-check typecheck test test-watch check clean nuke
 
 ##@ General
 
@@ -18,62 +25,71 @@ help: ## List available targets
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
 	@echo
 
-##@ Setup
+##@ Stack
 
-install: ## Install dependencies
-	$(PNPM) install
+up: ## Build the image, install dependencies and start the app
+	$(COMPOSE) build
+	@$(MAKE) --no-print-directory install
+	$(COMPOSE) up -d
+	@echo "→ app: http://localhost:3000"
+
+down: ## Stop and remove the containers
+	$(COMPOSE) down
+
+restart: ## Restart the app container
+	$(COMPOSE) restart app
+
+logs: ## Follow the app logs
+	$(COMPOSE) logs -f app
+
+shell: ## Open a shell in the app container
+	$(RUN) sh
 
 ##@ Development
 
-dev: ## Start the Next.js dev server
-	$(PNPM) dev
+install: ## Install dependencies into the bind mount
+	$(RUN) pnpm install
 
-build: ## Production build
-	$(PNPM) build
+dev: ## Run the dev server in the foreground
+	$(COMPOSE) up
 
-start: ## Serve the production build
-	$(PNPM) start
+build: ## Production build, inside the dev container
+	$(RUN) pnpm build
+
+image: ## Build the production image exactly as the homelab will
+	docker build --target runner -t leaderboard:local .
 
 ##@ Quality
 
 lint: ## Lint
-	$(PNPM) lint
+	$(RUN) pnpm lint
+
+lint-fix: ## Lint and fix what can be fixed
+	$(RUN) pnpm lint:fix
 
 format: ## Format with Prettier
-	$(PNPM) format
+	$(RUN) pnpm format
+
+format-check: ## Fail if anything is unformatted
+	$(RUN) pnpm format:check
 
 typecheck: ## Type-check without emitting
-	$(PNPM) typecheck
+	$(RUN) pnpm typecheck
 
 test: ## Unit tests (Vitest)
-	$(PNPM) test
+	$(RUN) pnpm test
 
 test-watch: ## Unit tests in watch mode
-	$(PNPM) test:watch
+	$(RUN) pnpm test:watch
 
-test-e2e: ## End-to-end tests (Playwright)
-	$(PNPM) test:e2e
-
-check: lint typecheck test ## Everything CI runs
-
-##@ Database
-
-db-start: ## Start local Supabase
-	$(SUPABASE) start
-
-db-stop: ## Stop local Supabase
-	$(SUPABASE) stop
-
-db-reset: ## Reset local DB: re-run migrations + seed
-	$(SUPABASE) db reset
-
-db-diff: ## Generate a migration from local schema changes (make db-diff name=add_seasons)
-	$(SUPABASE) db diff -f $(name)
-
-db-types: ## Regenerate TypeScript types from the local DB
-	$(SUPABASE) gen types typescript --local > lib/db/database.types.ts
+check: ## Everything CI runs: format, lint, types, tests
+	$(RUN) sh -c "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
 
 ##@ Housekeeping
 
 clean: ## Remove build output and caches
 	rm -rf .next out coverage test-results playwright-report *.tsbuildinfo
+
+nuke: clean ## Also remove node_modules and the pnpm store
+	$(COMPOSE) down -v
+	rm -rf node_modules .pnpm-store

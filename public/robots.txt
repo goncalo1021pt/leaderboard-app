@@ -1,0 +1,3 @@
+# A private app for one group of friends. Nothing here is meant to be indexed.
+User-agent: *
+Disallow: /

@@ -156,14 +156,23 @@ Deliberately boring and well-documented.
 | Styling        | Tailwind CSS                                        |
 | Validation     | Zod (module schemas, form inputs, API boundaries)   |
 | Client state   | Zustand (in-progress game), persisted to localStorage / IndexedDB |
-| Database/Auth  | Supabase (Postgres, Auth, Row Level Security)       |
+| Database/Auth  | Supabase, self-hosted (Postgres, Auth, Row Level Security) |
 | DB access      | Supabase JS client + generated types; SQL migrations in repo |
 | Testing        | Vitest (engine + lib), Playwright for a couple of smoke flows |
 | PWA            | Serwist (or next-pwa) — manifest, icons, offline shell |
-| Hosting        | Vercel                                              |
+| Hosting        | Self-hosted: Docker Compose on a homelab, exposed via Cloudflare Tunnel |
 | Package mgr    | pnpm                                                |
 
 Auth: Supabase magic link (email) for the MVP. Add Google OAuth later.
+
+**Self-hosting note.** The Supabase stack is trimmed to what this app uses: `db`, `auth`
+(GoTrue), `rest` (PostgREST), `kong`, `meta` and `studio`. Dropped: `storage`, `imgproxy`,
+`functions`, `analytics`, `vector` and `supavisor` — none are used. `realtime` is dropped
+too and gets added back when the v2 spectator link needs it.
+
+Self-hosted GoTrue has no built-in email sender, so **magic links require an external SMTP
+provider** (Resend, Postmark, Mailgun…). This is a hard prerequisite for step 5 — without
+it nobody can log in.
 
 ---
 
@@ -254,6 +263,11 @@ Mobile-first: design the live scoring screen for one thumb, portrait, ~390px wid
 | Supabase + RLS | Auth and multi-tenant access control without writing a backend. |
 | Compute standings on read | Data volume is tiny; avoid cache invalidation until measured. |
 | Zod schemas on modules | Config and actions are validated at the boundary and typed in one place. |
+| Self-hosted on a homelab, not Vercel | Hardware and a domain already exist. Removes the managed free tier's 7-day pause, which would otherwise take the app down mid-game-night after a quiet week. |
+| Trimmed Supabase over plain Postgres | RLS keeps authorization in the database, so a missing filter in app code can't leak one league's data to another. Six containers instead of ten keeps the footprint honest. |
+| Cloudflare Tunnel | No open ports and no dynamic DNS; TLS terminates at the edge. The app and the Supabase gateway each get a hostname — the browser talks to Supabase directly, so it must be publicly reachable. |
+| One environment, not prod + staging | Local dev runs the same Docker stack, so migrations are exercised against a real Supabase before they reach the homelab. A second always-on stack would earn little. |
+| Dev entirely in Docker | No Node on the host; the dev container is the same image lineage as production, so "works locally" means something. |
 
 ---
 

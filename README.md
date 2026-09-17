@@ -25,26 +25,27 @@ Build order and progress live in [§10 of the handout](handout.md#10-mvp-build-o
 | Styling       | Tailwind CSS                                              |
 | Validation    | Zod                                                       |
 | Client state  | Zustand, persisted to localStorage / IndexedDB            |
-| Database/Auth | Supabase (Postgres, Auth, Row Level Security)             |
+| Database/Auth | Supabase, self-hosted (Postgres, Auth, Row Level Security) |
 | Testing       | Vitest (engine + lib), Playwright (smoke flows)           |
 | PWA           | Serwist                                                   |
-| Hosting       | TBD                                                       |
+| Hosting       | Docker Compose on a homelab, via Cloudflare Tunnel         |
 | Package mgr   | pnpm                                                      |
 
 ## Getting started
 
-Requires Node 20+, pnpm, and Docker (for local Supabase).
+**Docker is the only prerequisite.** There is no Node on the host — the app, its toolchain and
+Supabase all run in containers.
 
 ```bash
-make install     # install dependencies
-make db-start    # start local Supabase
-make db-reset    # run migrations + seed
-make dev         # http://localhost:3000
+cp .env.example .env    # then fill in the values it asks for
+make up                 # build and start everything
+make db-reset           # run migrations + seed
 ```
 
-Copy `.env.example` to `.env.local` and fill in the Supabase URL and anon key printed by `make db-start`.
+The app is then on http://localhost:3000 and Supabase Studio on http://localhost:54323.
 
-Run `make` to see every available target.
+Run `make` to see every available target. Anything you'd normally run with pnpm goes through
+the Makefile, which runs it inside the container.
 
 ## Development workflow
 

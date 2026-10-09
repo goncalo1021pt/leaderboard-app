@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  /* System fonts only: nothing to download, no layout shift, no build-time
+     network fetch inside Docker. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-muted: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #0a0a0a;
+    --color-foreground: #ededed;
+    --color-muted: #9ca3af;
+  }
+}
+
+/* The live scoring screen puts controls at the bottom of the viewport; this
+   keeps them clear of the home indicator on a notched phone. */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}

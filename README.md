@@ -13,9 +13,10 @@ Both kinds produce the same `Result[]` output, so the league layer never depends
 
 ## Status
 
-Pre-scaffold. The design is settled in [handout.md](handout.md); the application code does not exist yet.
+Step 1 of the [build order](handout.md#10-mvp-build-order) is done: the app scaffold, the
+Docker toolchain and CI are in place. The game engine (step 2) is next.
 
-Build order and progress live in [§10 of the handout](handout.md#10-mvp-build-order).
+The design is settled in [handout.md](handout.md).
 
 ## Stack
 
@@ -26,7 +27,7 @@ Build order and progress live in [§10 of the handout](handout.md#10-mvp-build-o
 | Validation    | Zod                                                       |
 | Client state  | Zustand, persisted to localStorage / IndexedDB            |
 | Database/Auth | Supabase, self-hosted (Postgres, Auth, Row Level Security) |
-| Testing       | Vitest (engine + lib), Playwright (smoke flows)           |
+| Testing       | Vitest (engine + lib); Playwright later, for smoke flows   |
 | PWA           | Serwist                                                   |
 | Hosting       | Docker Compose on a homelab, via Cloudflare Tunnel         |
 | Package mgr   | pnpm                                                      |
@@ -37,15 +38,22 @@ Build order and progress live in [§10 of the handout](handout.md#10-mvp-build-o
 Supabase all run in containers.
 
 ```bash
-cp .env.example .env    # then fill in the values it asks for
-make up                 # build and start everything
-make db-reset           # run migrations + seed
+cp .env.example .env    # nothing needs filling in yet
+make up                 # build the image, install dependencies, start the app
 ```
 
-The app is then on http://localhost:3000 and Supabase Studio on http://localhost:54323.
+The app is then on http://localhost:3000, with hot reload. Supabase joins the stack at
+build-order step 4.
 
-Run `make` to see every available target. Anything you'd normally run with pnpm goes through
-the Makefile, which runs it inside the container.
+```bash
+make check              # format, lint, types, tests — what CI runs
+make shell              # a shell inside the container
+make down               # stop
+```
+
+Run `make` to see every target. Anything you would normally run with pnpm goes through the
+Makefile, which runs it inside the container. Dependencies are installed into `./node_modules`
+on the host as your own user, so your editor's TypeScript server works without Node installed.
 
 ## Development workflow
 

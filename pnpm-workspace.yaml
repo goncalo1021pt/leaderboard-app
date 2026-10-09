@@ -1,0 +1,6 @@
+# pnpm 12 refuses to run dependency build scripts unless they are named here.
+allowBuilds:
+  # Vitest's bundler; the postinstall fetches its platform binary.
+  esbuild: true
+  sharp: false
+  unrs-resolver: false

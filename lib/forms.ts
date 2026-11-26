@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 
 import { ForbiddenError, NotFoundError } from "@/lib/db/errors";
+import { GameRuleError, GameSetupError } from "@/lib/games/errors";
 
 /** What a form's server action hands back to useActionState. */
 export interface FormState {
@@ -17,7 +18,12 @@ export function formError(error: unknown): FormState {
   if (error instanceof ZodError) {
     return { error: error.issues[0]?.message ?? "That doesn't look right" };
   }
-  if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+  if (
+    error instanceof NotFoundError ||
+    error instanceof ForbiddenError ||
+    error instanceof GameRuleError ||
+    error instanceof GameSetupError
+  ) {
     return { error: error.message };
   }
   throw error;

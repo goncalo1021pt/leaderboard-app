@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buttonClasses } from "@/components/ui/button-classes";
 import { Card, Page } from "@/components/ui/card";
 import { requireSignedIn } from "@/lib/auth/server";
 import { NotFoundError } from "@/lib/db/errors";
+import { listGames } from "@/lib/db/games";
 import { getLeague } from "@/lib/db/leagues";
 import { listPlayers } from "@/lib/db/players";
 
 import { AddGuestForm, InviteCard, WhoAreYou } from "../forms";
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
 export default async function LeaguePage({
   params,
@@ -25,7 +29,10 @@ export default async function LeaguePage({
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
-  const players = await listPlayers(actor, id);
+  const [players, games] = await Promise.all([
+    listPlayers(actor, id),
+    listGames(actor, id, { limit: 10 }),
+  ]);
   const me = players.find((p) => p.userId === actor.userId);
   const guests = players.filter((p) => p.userId === null);
   const inviteLink = `${process.env.BETTER_AUTH_URL}/join/${league.inviteCode}`;
@@ -45,9 +52,37 @@ export default async function LeaguePage({
         </Card>
       )}
 
-      <Card title="Standings">
+      <Link href={`/leagues/${league.id}/record`} className={buttonClasses("primary")}>
+        Record a game
+      </Link>
+
+      <Card title="Recent games">
+        {games.length === 0 ? (
+          <p className="text-muted text-sm">No games yet. Record the first one.</p>
+        ) : (
+          <ul className="divide-border -my-2 flex flex-col divide-y">
+            {games.map((game) => (
+              <li key={game.id}>
+                <Link
+                  href={`/games/${game.id}`}
+                  className="flex min-h-14 flex-col justify-center py-2"
+                >
+                  <span className="flex justify-between gap-3">
+                    <span className="font-medium">{game.presetName}</span>
+                    <span className="text-muted text-sm">
+                      {dateFormat.format(game.playedAt)}
+                    </span>
+                  </span>
+                  <span className="text-muted text-sm">
+                    {game.winners.join(" & ")} won · {game.playerCount} players
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         <p className="text-muted text-sm">
-          Recording games and the standings table arrive in the next steps.
+          The standings table arrives in the next step.
         </p>
       </Card>
 

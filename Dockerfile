@@ -79,6 +79,8 @@ RUN addgroup -g 1001 -S nodejs && adduser -S -u 1001 -G nodejs nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Applied by instrumentation.ts when the server starts.
+COPY --from=builder /app/drizzle ./drizzle
 
 USER nextjs
 EXPOSE 3000

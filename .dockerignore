@@ -12,7 +12,6 @@ playwright-report
 .env
 .env.*
 !.env.example
-supabase/.temp
 Makefile
 README.md
 CONTRIBUTING.md

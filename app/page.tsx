@@ -6,7 +6,7 @@ export default function HomePage() {
         Record the games your group plays and keep the league standings.
       </p>
       <p className="text-muted text-sm">
-        Nothing to see yet — the scaffold is in place and the game engine is next.
+        Nothing to see yet — the engine and database are in place, and sign-in is next.
       </p>
     </main>
   );

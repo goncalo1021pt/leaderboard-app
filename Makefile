@@ -15,7 +15,8 @@ COMPOSE := docker compose
 RUN     := $(COMPOSE) run --rm app
 
 .PHONY: help up down restart logs shell install dev build image lint lint-fix \
-        format format-check typecheck test test-watch check clean nuke
+        format format-check typecheck test test-watch check \
+        db-generate db-migration db-migrate db-psql db-reset clean nuke
 
 ##@ General
 
@@ -27,13 +28,13 @@ help: ## List available targets
 
 ##@ Stack
 
-up: ## Build the image, install dependencies and start the app
+up: ## Build the image, install dependencies and start the app and database
 	$(COMPOSE) build
 	@$(MAKE) --no-print-directory install
 	$(COMPOSE) up -d
-	@echo "→ app: http://localhost:3000"
+	@echo "→ app: http://localhost:3000 (migrations apply on start)"
 
-down: ## Stop and remove the containers
+down: ## Stop and remove the containers (the database volume is kept)
 	$(COMPOSE) down
 
 restart: ## Restart the app container
@@ -84,6 +85,25 @@ test-watch: ## Unit tests in watch mode
 
 check: ## Everything CI runs: format, lint, types, tests
 	$(RUN) sh -c "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+
+##@ Database
+
+db-generate: ## Write a migration for changes to lib/db/schema (NAME=short_name)
+	$(RUN) pnpm db:generate $(if $(NAME),--name $(NAME))
+
+db-migration: ## Write an empty migration for hand-written SQL (NAME=short_name)
+	$(RUN) pnpm db:generate --custom $(if $(NAME),--name $(NAME))
+
+db-migrate: ## Apply pending migrations now, without restarting the app
+	$(RUN) pnpm db:migrate
+
+db-psql: ## Open psql on the dev database
+	$(COMPOSE) exec db psql -U leaderboard -d leaderboard
+
+db-reset: ## Drop and recreate the dev database, then migrate it (destroys dev data)
+	$(COMPOSE) exec db psql -U leaderboard -d postgres \
+		-c "DROP DATABASE IF EXISTS leaderboard WITH (FORCE)" -c "CREATE DATABASE leaderboard"
+	@$(MAKE) --no-print-directory db-migrate
 
 ##@ Housekeeping
 

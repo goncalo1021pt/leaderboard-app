@@ -16,6 +16,24 @@ jobs:
   check:
     name: lint + typecheck + test
     runs-on: ubuntu-latest
+    # The db test project needs a real Postgres, the same major version as the
+    # stack. Its tests create and migrate their own scratch database.
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: leaderboard
+          POSTGRES_PASSWORD: leaderboard
+          POSTGRES_DB: leaderboard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U leaderboard -d leaderboard"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgres://leaderboard:leaderboard@localhost:5432/leaderboard
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +55,9 @@ jobs:
 
       - name: Types
         run: pnpm typecheck
+
+      - name: Migrations match the schema
+        run: pnpm db:check
 
       - name: Tests
         run: pnpm test

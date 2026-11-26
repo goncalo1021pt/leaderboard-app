@@ -6,8 +6,8 @@ services:
       context: .
       target: dev
     # Run as the host user so everything written into the bind mount —
-    # node_modules, .next, generated Supabase types — stays owned by you
-    # rather than by root. DOCKER_UID/DOCKER_GID are exported by the Makefile.
+    # node_modules, .next, generated migrations — stays owned by you rather
+    # than by root. DOCKER_UID/DOCKER_GID are exported by the Makefile.
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     command: pnpm dev
     ports:
@@ -21,3 +21,33 @@ services:
       # Bind mounts on Linux deliver inotify events natively, so polling stays
       # off. Set WATCHPACK_POLLING=true in .env if hot reload ever misses edits.
       WATCHPACK_POLLING: "${WATCHPACK_POLLING:-false}"
+      # Dev credentials only. Production sets its own DATABASE_URL.
+      DATABASE_URL: "postgres://leaderboard:leaderboard@db:5432/leaderboard"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18.1-alpine
+    environment:
+      POSTGRES_USER: leaderboard
+      POSTGRES_PASSWORD: leaderboard
+      POSTGRES_DB: leaderboard
+    # Bound to localhost only, so a GUI client on the host can connect without
+    # the database being reachable from the rest of the network. 5433 rather
+    # than 5432 so it coexists with any other Postgres on the machine; override
+    # with POSTGRES_HOST_PORT in .env.
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      # Postgres 18 images keep their data in a version-named subdirectory of
+      # this path, so a future major upgrade does not clobber it.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaderboard -d leaderboard"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db-data:

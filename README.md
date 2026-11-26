@@ -13,11 +13,12 @@ Both kinds produce the same `Result[]` output, so the league layer never depends
 
 ## Status
 
-Steps 1–5 of the [build order](handout.md#10-mvp-build-order) are done: the scaffold and
+Steps 1–6 of the [build order](handout.md#10-mvp-build-order) are done: the scaffold and
 Docker toolchain, the game engine with the `generic` module, standings with the `table`
-method, the database with its data-access layer, and sign-in with leagues: magic-link
-login, creating a league, inviting people by code or link, guests, and claiming a guest.
-Recording and publishing a game (step 6) is next.
+method, the database with its data-access layer, sign-in with leagues (magic-link login,
+invites by code or link, guests, claiming a guest), and recording result-only games: pick
+a game type or define your own, enter scores, publish, see the game summary. The standings
+page (step 7) is next.
 
 The design is settled in [handout.md](handout.md).
 

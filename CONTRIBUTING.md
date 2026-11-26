@@ -30,9 +30,10 @@ A PR merges when CI is green and the branch is up to date with `main`. Squash me
 These come from [§12 of the handout](handout.md#12-conventions-for-the-coding-session) and are enforced in review:
 
 - **TypeScript strict.** No `any` outside the erased generics in `lib/games/registry.ts`.
-- **The engine is pure.** `lib/games` and `lib/standings` import no React and no Supabase. They are plain TypeScript that runs equally well in a route handler, a test, or the browser. Module UI lives in a separate `ui.tsx` that the engine itself never imports.
+- **The engine is pure.** `lib/games` and `lib/standings` import no React, no Next.js and nothing from the database. They are plain TypeScript that runs equally well in a route handler, a test, or the browser. Module UI lives in a separate `ui.tsx` that the engine itself never imports.
 - **Every module ships with tests.** Round-based modules need at least one full-game fixture with expected final results.
-- **One SQL migration per change.** Never edit a migration that has already been applied — write a new one.
+- **All database access goes through `lib/db`.** Its functions take the acting user and check league membership first; that is the app's whole authorization model. ESLint stops anything else importing the database client, the schema or Drizzle.
+- **One SQL migration per change.** Never edit a migration that has already been applied — write a new one. Generate them with `make db-generate`; don't write schema SQL by hand.
 - **Validate external input with Zod** at route handlers and form submits. Anything crossing a trust boundary gets parsed, not cast.
 - **Mobile-first.** Build the live scoring screen at 390px wide first, then widen.
 - **Small, composable components** over page-level monoliths.
@@ -49,12 +50,14 @@ Nothing outside that folder and that line should need to change. If it does, the
 ## Tests
 
 ```bash
-make test         # unit tests, once
-make test-watch   # unit tests, watching
+make test         # unit and db tests, once
+make test-watch   # the same, watching
 make check        # format + lint + typecheck + test — what CI runs
 ```
 
 Playwright is not installed yet; it arrives with the first smoke flow, along with a
 `make test-e2e` target.
+
+Tests come in two projects. `unit` covers pure code under `lib/`. `db` covers the data-access layer against a real Postgres: each run drops, recreates and migrates a scratch `leaderboard_test` database, so it also proves the migrations apply from empty. Any change to `lib/db` that touches who can see what needs a test with two users in `tests/db`.
 
 Engine code (`lib/games`, `lib/standings`) is where test coverage actually matters: it is pure, fast to test, and every scoring bug lives there. Cover ties, minimum and maximum player counts, and both directions of `higherIsBetter`.

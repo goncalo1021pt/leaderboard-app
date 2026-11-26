@@ -13,8 +13,10 @@ Both kinds produce the same `Result[]` output, so the league layer never depends
 
 ## Status
 
-Step 1 of the [build order](handout.md#10-mvp-build-order) is done: the app scaffold, the
-Docker toolchain and CI are in place. The game engine (step 2) is next.
+Steps 1–4 of the [build order](handout.md#10-mvp-build-order) are done: the scaffold and
+Docker toolchain, the game engine with the `generic` module, standings with the `table`
+method, and the database with its data-access layer. Auth and leagues (step 5) are next.
+There is no UI beyond a placeholder page yet.
 
 The design is settled in [handout.md](handout.md).
 
@@ -26,7 +28,9 @@ The design is settled in [handout.md](handout.md).
 | Styling       | Tailwind CSS                                              |
 | Validation    | Zod                                                       |
 | Client state  | Zustand, persisted to localStorage / IndexedDB            |
-| Database/Auth | Supabase, self-hosted (Postgres, Auth, Row Level Security) |
+| Database      | PostgreSQL, self-hosted                                   |
+| DB access     | Drizzle ORM (postgres.js), migrations via drizzle-kit     |
+| Auth          | Better Auth, magic link                                    |
 | Testing       | Vitest (engine + lib); Playwright later, for smoke flows   |
 | PWA           | Serwist                                                   |
 | Hosting       | Docker Compose on a homelab, via Cloudflare Tunnel         |
@@ -35,21 +39,32 @@ The design is settled in [handout.md](handout.md).
 ## Getting started
 
 **Docker is the only prerequisite.** There is no Node on the host — the app, its toolchain and
-Supabase all run in containers.
+Postgres all run in containers.
 
 ```bash
 cp .env.example .env    # nothing needs filling in yet
 make up                 # build the image, install dependencies, start the app
 ```
 
-The app is then on http://localhost:3000, with hot reload. Supabase joins the stack at
-build-order step 4.
+The app is then on http://localhost:3000, with hot reload. Postgres runs next to it, and
+the app applies any pending migrations when it starts.
 
 ```bash
 make check              # format, lint, types, tests — what CI runs
 make shell              # a shell inside the container
-make down               # stop
+make db-psql            # psql on the dev database
+make down               # stop (the database volume is kept)
 ```
+
+From the host, a GUI client can reach the dev database on `localhost:5433`
+(user, password and database all `leaderboard`).
+
+### Changing the schema
+
+Edit `lib/db/schema/`, then `make db-generate NAME=what_changed` to write the migration into
+`drizzle/`. Commit both. For hand-written SQL (data changes, seeds), `make db-migration
+NAME=…` gives you an empty migration to fill in. CI fails if the schema and migrations
+disagree.
 
 Run `make` to see every target. Anything you would normally run with pnpm goes through the
 Makefile, which runs it inside the container. Dependencies are installed into `./node_modules`
@@ -79,12 +94,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions — commit granularity, t
 /lib
   /games             game engine: types, registry, replay, one folder per module
   /standings         computeStandings — consumes Result[] only
-  /db                Supabase clients, queries, generated types
+  /db                Drizzle schema, client, and the data-access layer (all authorization)
   /store             Zustand store for the in-progress game
-/supabase
-  /migrations        SQL, one file per change
-  seed.sql           built-in game presets
+/drizzle             SQL migrations, one per change; built-in presets are seeded here
 /tests
+  /db                integration tests against a real Postgres
 ```
 
 Adding a game means creating `lib/games/<id>/` and adding one line to the registry. Nothing else changes.

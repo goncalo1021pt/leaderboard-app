@@ -24,11 +24,6 @@ blob-report/
 .env.*.local
 !.env.example
 
-# Supabase
-.branches/
-.temp/
-supabase/.temp/
-
 # Vercel
 .vercel/
 

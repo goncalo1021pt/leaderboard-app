@@ -5,7 +5,7 @@ coverage/
 node_modules/
 pnpm-lock.yaml
 .pnpm-store/
-supabase/.temp/
+drizzle/meta/
 
 # Prose is written by hand. Prettier reflows tables and wraps paragraphs, which
 # churns the diff on documents nobody asked it to restyle.

@@ -15,6 +15,20 @@
       "when": 1795709120263,
       "tag": "0001_seed_builtin_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795712577803,
+      "tag": "0002_single_owner_and_same_league_results",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795712578444,
+      "tag": "0003_games_same_league_trigger",
+      "breakpoints": true
     }
   ]
 }

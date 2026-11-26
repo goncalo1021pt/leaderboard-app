@@ -56,8 +56,20 @@ jobs:
       - name: Types
         run: pnpm typecheck
 
-      - name: Migrations match the schema
+      # `drizzle-kit check` only proves the migration history is consistent.
+      # It does not notice a schema edit nobody generated a migration for, so
+      # also regenerate and fail if that writes anything.
+      - name: Migration history is consistent
         run: pnpm db:check
+
+      - name: Every schema change has a migration
+        run: |
+          pnpm db:generate --name ci_drift_probe
+          if [ -n "$(git status --porcelain -- drizzle/)" ]; then
+            echo "::error::lib/db/schema has changes with no migration. Run 'make db-generate NAME=...' and commit the result."
+            git status --porcelain -- drizzle/
+            exit 1
+          fi
 
       - name: Tests
         run: pnpm test

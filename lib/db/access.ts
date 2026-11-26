@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import type { Executor } from "./client";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { idSchema } from "./inputs";
-import { leagueMembers } from "./schema";
+import { leagueMembers, leagues } from "./schema";
 
 /**
  * Who is asking. Built from the session by the caller (step 5), never from
@@ -14,7 +14,16 @@ export interface Actor {
   readonly userId: string;
 }
 
-export type Role = (typeof leagueMembers.$inferSelect)["role"];
+/**
+ * Derived, not stored: the owner is whoever leagues.owner_id names, and every
+ * other member is a member. One source of truth means the two can't disagree.
+ */
+export type Role = "owner" | "member";
+
+/** SQL for the actor's role, given a query that joins leagues. */
+export function roleOf(actor: Actor) {
+  return sql<Role>`case when ${leagues.ownerId} = ${actor.userId} then 'owner' else 'member' end`;
+}
 
 /**
  * The actor's role in a league, or throws NotFoundError if they are not a
@@ -30,8 +39,9 @@ export async function requireMember(
     throw new NotFoundError("League not found");
   }
   const [row] = await db
-    .select({ role: leagueMembers.role })
+    .select({ role: roleOf(actor) })
     .from(leagueMembers)
+    .innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
     .where(
       and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.userId, actor.userId)),
     );

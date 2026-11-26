@@ -73,6 +73,14 @@ const eslintConfig = defineConfig([
                 "@/lib/db/*",
                 "@/lib/auth",
                 "@/lib/auth/*",
+                // Relative spellings, as in the general block above.
+                "**/db/client",
+                "**/db/schema",
+                "**/db/schema/*",
+                "**/db",
+                "**/db/*",
+                "**/auth",
+                "**/auth/*",
               ],
               message:
                 "Engine code must stay pure TypeScript. Data access belongs in lib/db.",

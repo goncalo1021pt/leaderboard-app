@@ -219,17 +219,19 @@ sessions         Better Auth: id, user_id, token, expires_at, ip_address, user_a
 accounts         Better Auth: id, user_id, provider_id, account_id, tokens…
 verifications    Better Auth: id, identifier, value, expires_at  -- magic-link tokens
 leagues          id, name, owner_id, invite_code, scoring_method, settings jsonb
-league_members   league_id, user_id, role ('owner'|'member')
+league_members   league_id, user_id   -- role is derived: owner if leagues.owner_id, else member
 players          id, league_id, display_name, user_id nullable   -- guest if null
 seasons          id, league_id, name, starts_at, ends_at nullable  -- v2, table can exist from day one
 game_presets     id, league_id nullable (null = built-in), name, module_id, config jsonb
 games            id, league_id, season_id nullable, preset_id, module_id, module_version,
                  recorded_by, status ('in_progress'|'published'), config jsonb,
                  player_ids uuid[], actions jsonb, played_at, published_at
-game_results     game_id, player_id, score, placement   -- written on publish
+game_results     game_id, league_id, player_id, score, placement   -- written on publish
 ```
 
 - `games.actions` is the log (section 3.2). `game_results` is the denormalised output for fast standings queries.
+- `leagues.owner_id` is the only record of ownership, so there is exactly one owner and a transfer is one update.
+- A game never reaches outside its league, enforced by the database, not only by app code: a trigger checks its preset (built-in or the league's own), season and `player_ids` (this league's players, no repeats), and `game_results` carries `league_id` so composite foreign keys tie each result's game and player to the same league.
 - In-progress games live client-side first; they may also be saved to `games` with `status='in_progress'` as a backup. Publish is a single transaction: validate by replay, write `game_results`, flip status.
 - Published games are immutable in the MVP. Corrections (v2): unpublish → edit → republish, owner-only, audit logged.
 
@@ -242,7 +244,7 @@ acting user and checks membership before it reads or writes.
 - Only league members can insert games in that league; only the scorekeeper (or owner) can update an in-progress game.
 - Built-in presets (`league_id is null`) are readable by everyone.
 - Joining by invite code goes through a server action. Codes are random and long enough (10 characters from a 32-letter alphabet, 50 bits) that they can't be enumerated.
-- Integration tests run the layer against a real Postgres with two users and check that neither can see the other's league.
+- Integration tests run the layer against a real Postgres with two users and check that neither can see the other's league, and that the database refuses a game or result that crosses leagues.
 
 ---
 

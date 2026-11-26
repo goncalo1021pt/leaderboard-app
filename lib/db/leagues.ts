@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 
-import { type Actor, type Role, requireMember } from "./access";
+import { type Actor, type Role, requireMember, roleOf } from "./access";
 import { getDb } from "./client";
 import { NotFoundError } from "./errors";
 import { leagueNameSchema } from "./inputs";
@@ -47,11 +47,7 @@ export async function createLeague(
       .returning();
     if (league === undefined) throw new Error("insert returned nothing");
 
-    await tx.insert(leagueMembers).values({
-      leagueId: league.id,
-      userId: actor.userId,
-      role: "owner",
-    });
+    await tx.insert(leagueMembers).values({ leagueId: league.id, userId: actor.userId });
     await tx.insert(players).values({
       leagueId: league.id,
       displayName: user.name,
@@ -72,7 +68,7 @@ export async function createLeague(
 /** Every league the actor belongs to. */
 export async function listMyLeagues(actor: Actor): Promise<LeagueSummary[]> {
   return getDb()
-    .select({ id: leagues.id, name: leagues.name, role: leagueMembers.role })
+    .select({ id: leagues.id, name: leagues.name, role: roleOf(actor) })
     .from(leagueMembers)
     .innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
     .where(eq(leagueMembers.userId, actor.userId))
@@ -116,7 +112,7 @@ export async function joinLeagueByCode(
 
     const inserted = await tx
       .insert(leagueMembers)
-      .values({ leagueId: league.id, userId: actor.userId, role: "member" })
+      .values({ leagueId: league.id, userId: actor.userId })
       .onConflictDoNothing()
       .returning({ leagueId: leagueMembers.leagueId });
 

@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
@@ -13,6 +14,7 @@ import {
 } from "@/lib/db/leagues";
 import { addGuestPlayer, listPlayers } from "@/lib/db/players";
 import { listPresets } from "@/lib/db/presets";
+import { leagues } from "@/lib/db/schema";
 
 import { createUser } from "./helpers";
 
@@ -134,5 +136,30 @@ describe("players", () => {
       "Ana",
       "Rita",
     ]);
+  });
+});
+
+describe("ownership", () => {
+  it("follows leagues.owner_id, the single place it is recorded", async () => {
+    const ana = await createUser("Ana");
+    const bruno = await createUser("Bruno");
+    const league = await createLeague(ana, { name: "Handover" });
+    await joinLeagueByCode(bruno, league.inviteCode);
+
+    // A transfer is one update, and every reader agrees afterwards.
+    await getDb()
+      .update(leagues)
+      .set({ ownerId: bruno.userId })
+      .where(eq(leagues.id, league.id));
+
+    expect((await getLeague(bruno, league.id)).role).toBe("owner");
+    expect((await getLeague(ana, league.id)).role).toBe("member");
+    expect((await listMyLeagues(ana)).find((l) => l.id === league.id)?.role).toBe(
+      "member",
+    );
+    await expect(requireOwner(getDb(), bruno, league.id)).resolves.toBeUndefined();
+    await expect(requireOwner(getDb(), ana, league.id)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
   });
 });

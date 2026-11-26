@@ -21,11 +21,18 @@ services:
       # Bind mounts on Linux deliver inotify events natively, so polling stays
       # off. Set WATCHPACK_POLLING=true in .env if hot reload ever misses edits.
       WATCHPACK_POLLING: "${WATCHPACK_POLLING:-false}"
-      # Dev credentials only. Production sets its own DATABASE_URL.
+      # Dev values only. Production sets every one of these itself.
       DATABASE_URL: "postgres://leaderboard:leaderboard@db:5432/leaderboard"
+      BETTER_AUTH_URL: "http://localhost:3000"
+      BETTER_AUTH_SECRET: "dev-only-secret-never-use-in-production-0123456789"
+      # Every email the app sends lands in Mailpit: http://localhost:8025
+      SMTP_URL: "smtp://mailpit:1025"
+      MAIL_FROM: "Leaderboard <leaderboard@localhost>"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   db:
     image: postgres:18.1-alpine
@@ -48,6 +55,13 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  # Catches outgoing email so magic-link login works with no email provider.
+  # Its inbox is at http://localhost:8025; nothing ever leaves the machine.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "127.0.0.1:${MAILPIT_HOST_PORT:-8025}:8025"
 
 volumes:
   db-data:

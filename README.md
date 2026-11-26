@@ -13,10 +13,11 @@ Both kinds produce the same `Result[]` output, so the league layer never depends
 
 ## Status
 
-Steps 1–4 of the [build order](handout.md#10-mvp-build-order) are done: the scaffold and
+Steps 1–5 of the [build order](handout.md#10-mvp-build-order) are done: the scaffold and
 Docker toolchain, the game engine with the `generic` module, standings with the `table`
-method, and the database with its data-access layer. Auth and leagues (step 5) are next.
-There is no UI beyond a placeholder page yet.
+method, the database with its data-access layer, and sign-in with leagues: magic-link
+login, creating a league, inviting people by code or link, guests, and claiming a guest.
+Recording and publishing a game (step 6) is next.
 
 The design is settled in [handout.md](handout.md).
 
@@ -48,6 +49,9 @@ make up                 # build the image, install dependencies, start the app
 
 The app is then on http://localhost:3000, with hot reload. Postgres runs next to it, and
 the app applies any pending migrations when it starts.
+
+To sign in, enter any email address: the magic link lands in **Mailpit**, a local inbox at
+http://localhost:8025. Nothing is really sent.
 
 ```bash
 make check              # format, lint, types, tests — what CI runs

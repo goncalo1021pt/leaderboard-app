@@ -1,6 +1,35 @@
 @import "tailwindcss";
 
-@theme {
+/* Colours are plain custom properties, switched by the media query below, and
+   exposed to Tailwind through `@theme inline`. (@theme can't sit inside a
+   media query, so the dark values have to be swapped underneath it.) */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #6b7280;
+  --surface: #f5f5f4;
+  --border: #e7e5e4;
+  --accent: #171717;
+  --accent-foreground: #ffffff;
+  --danger: #b91c1c;
+  --success: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --muted: #9ca3af;
+    --surface: #171717;
+    --border: #2e2e2e;
+    --accent: #ededed;
+    --accent-foreground: #0a0a0a;
+    --danger: #f87171;
+    --success: #4ade80;
+  }
+}
+
+@theme inline {
   /* System fonts only: nothing to download, no layout shift, no build-time
      network fetch inside Docker. */
   --font-sans:
@@ -8,17 +37,15 @@
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --color-muted: #6b7280;
-}
-
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: #0a0a0a;
-    --color-foreground: #ededed;
-    --color-muted: #9ca3af;
-  }
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
 }
 
 /* The live scoring screen puts controls at the bottom of the viewport; this

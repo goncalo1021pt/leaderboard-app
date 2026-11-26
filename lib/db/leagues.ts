@@ -1,6 +1,6 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
-import { type Actor, type Role, requireMember, roleOf } from "./access";
+import { type Actor, type Role, requireMember, requireOwner, roleOf } from "./access";
 import { getDb } from "./client";
 import { NotFoundError } from "./errors";
 import { leagueNameSchema } from "./inputs";
@@ -118,4 +118,39 @@ export async function joinLeagueByCode(
 
     return { leagueId: league.id, alreadyMember: inserted.length === 0 };
   });
+}
+
+/**
+ * Replaces the invite code, so a code that leaked stops working. Owner only.
+ * People already in the league are unaffected.
+ */
+export async function rotateInviteCode(actor: Actor, leagueId: string): Promise<string> {
+  const db = getDb();
+  await requireOwner(db, actor, leagueId);
+  const inviteCode = generateInviteCode();
+  await db.update(leagues).set({ inviteCode }).where(eq(leagues.id, leagueId));
+  return inviteCode;
+}
+
+/**
+ * What an invite link leads to, for the "Join this league?" screen. Anyone
+ * signed in may ask: holding the code is what grants entry, so showing the
+ * league's name to its holder reveals nothing they couldn't get by joining.
+ */
+export async function previewInvite(
+  actor: Actor,
+  code: string,
+): Promise<{ leagueId: string; name: string; alreadyMember: boolean } | null> {
+  const inviteCode = normalizeInviteCode(code);
+  if (inviteCode === "") return null;
+  const [row] = await getDb()
+    .select({ leagueId: leagues.id, name: leagues.name, member: leagueMembers.userId })
+    .from(leagues)
+    .leftJoin(
+      leagueMembers,
+      and(eq(leagueMembers.leagueId, leagues.id), eq(leagueMembers.userId, actor.userId)),
+    )
+    .where(eq(leagues.inviteCode, inviteCode));
+  if (row === undefined) return null;
+  return { leagueId: row.leagueId, name: row.name, alreadyMember: row.member !== null };
 }

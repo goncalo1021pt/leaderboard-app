@@ -17,3 +17,10 @@ export class ForbiddenError extends Error {
     this.name = "ForbiddenError";
   }
 }
+
+/** True when Postgres rejected a write for breaking the named unique constraint. */
+export function isUniqueViolation(error: unknown, constraint: string): boolean {
+  const cause = (error as { cause?: { code?: string; constraint_name?: string } } | null)
+    ?.cause;
+  return cause?.code === "23505" && cause.constraint_name === constraint;
+}

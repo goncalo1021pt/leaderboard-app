@@ -292,7 +292,7 @@ Work in this order; each step should leave the app runnable and tests green.
 2. **Engine core** — `lib/games/types.ts`, `replay.ts`, `registry.ts`. `generic` module with full unit tests (ties, higher/lower is better).
 3. **Standings** — `computeStandings` with `table` method, unit tests (ties, mixed player counts).
 4. **DB** — Postgres in the stack, Drizzle schema and migrations for section 7, seed built-in presets, the data-access layer with its authorization checks. Integration-test the boundary with two test users.
-5. **Auth + leagues** — magic link login, create league, join by invite code, add guest players.
+5. **Auth + leagues** — magic link login, create league, join by invite code or link, add guest players, claim a guest on joining (flow 2), owner can replace a leaked invite code.
 6. **Record & publish a generic game** — preset picker, player picker, result form, publish route with server-side replay, game summary page.
 7. **Standings page** — per preset + overall.
 8. **In-progress game store** — Zustand persisted locally; resume an unfinished game after reload.
@@ -306,7 +306,7 @@ Work in this order; each step should leave the app runnable and tests green.
 
 - Seasons (start/end, reset standings)
 - Elo and points scoring methods
-- Claim a guest Player; merge Player histories
+- Merge two Player histories (claiming a guest on joining is already in the MVP, flow 2)
 - Result confirmation by linked players
 - Live spectator link for an in-progress game (server-sent events from the app)
 - Per-player stats: win rate, average placement, head-to-head
